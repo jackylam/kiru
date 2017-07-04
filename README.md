@@ -1,4 +1,4 @@
-kiru
+Kiru
 
 DNS Server written in Python
 
