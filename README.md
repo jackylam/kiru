@@ -13,3 +13,4 @@ Requirements
 - Python 2.7.x
 - Connector/Python 2.1.6 or higher
 - Flask 0.11.1 or higher
+- MySQL 5.5/MariaDB 5.5 or higher
