@@ -14,9 +14,12 @@ import dnsquery
 from dnsquery import DNSQuery
 
 
-def tcp_connector(host, port):
+def tcp_connector(server_config):
 
 	try:
+		host = server_config.get('host')
+		port = server_config.get('port')
+		proxy_mode = server_config.get('proxy')
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.bind((host, port))
@@ -28,7 +31,7 @@ def tcp_connector(host, port):
 		while True:
 			conn, address = sock.accept()
 			buf = conn.recv(TCP_BUFFER)
-			sock_pair = [conn, address, buf, flag]
+			sock_pair = [conn, address, buf, flag, proxy_mode]
 			queue.put(sock_pair)
 
 	except socket.error as msg:
@@ -36,9 +39,12 @@ def tcp_connector(host, port):
 		sys.exit()
 
 
-def udp_connector(host, port):
+def udp_connector(server_config):
 
 	try:
+		host = server_config.get('host')
+		port = server_config.get('port')
+		proxy_mode = server_config.get('proxy')
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.bind((host, port))
@@ -47,7 +53,7 @@ def udp_connector(host, port):
 
 		while True:
 			buf, address = sock.recvfrom(UDP_BUFFER)
-			sock_pair = [sock, address, buf, flag]
+			sock_pair = [sock, address, buf, flag, proxy_mode]
 			queue.put(sock_pair)
 
 	except socket.error as msg:
@@ -222,6 +228,16 @@ def encode_record(byte_array, record, name):
 		for number in ip_list:
 			byte_array.append(int(number))
 
+	# Encoding for TXT record
+
+	if str(record.type).upper() == 'TXT':
+		length = len(record.content)
+		data_length = length + 1
+		byte_array.append(data_length >> 8)
+		byte_array.append(data_length & 255)
+		byte_array.append(length & 255)
+		byte_array.extend(record.content.encode('ascii'))
+
 	# Encoding for CNAME, NS and PTR records
 
 	if str(record.type).upper() == 'CNAME' or str(record.type).upper() == 'NS' or str(record.type).upper() == 'PTR':
@@ -238,6 +254,7 @@ def encode_record(byte_array, record, name):
 		for label in label_list:
 			byte_array.append(len(label))
 			byte_array.extend(label.encode('ascii'))
+
 
 		byte_array.append(0)
 
@@ -423,14 +440,20 @@ def encode_record(byte_array, record, name):
 def main():
 
 	with open(os.path.join(os.path.dirname(__file__), "config.properties"), 'r') as config:
+		server_config = {}
 		for line in config:
 			temp = line.split('=')
 			if temp[0] == 'threads':
 				threads = int(temp[1])
 			if temp[0] == 'host':
-				host = temp[1].rstrip('\n')
+				server_config['host'] = temp[1].rstrip('\n')
 			if temp[0] == 'port':
-				port = int(temp[1].rstrip('\n'))
+				server_config['port'] = int(temp[1].rstrip('\n'))
+			if temp[0] == 'proxy':
+				if temp[1].rstrip('\n') == 'yes':
+					server_config['proxy'] = True
+				else:
+					server_config['proxy'] = False
 
 
 	for i in range(threads):
@@ -438,9 +461,9 @@ def main():
 		request_handler.setDaemon(True)
 		request_handler.start()
 
-	tcp_thread = Thread(target=tcp_connector, args=(host, port))
+	tcp_thread = Thread(target=tcp_connector, args=(server_config,))
 	tcp_thread.start()
-	udp_thread = Thread(target=udp_connector, args=(host, port))
+	udp_thread = Thread(target=udp_connector, args=(server_config,))
 	udp_thread.start()
 	queue.join()
 
