@@ -14,12 +14,9 @@ import dnsquery
 from dnsquery import DNSQuery
 
 
-def tcp_connector(server_config):
+def tcp_connector(host, port):
 
 	try:
-		host = server_config.get('host')
-		port = server_config.get('port')
-		proxy_mode = server_config.get('proxy')
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.bind((host, port))
@@ -31,7 +28,7 @@ def tcp_connector(server_config):
 		while True:
 			conn, address = sock.accept()
 			buf = conn.recv(TCP_BUFFER)
-			sock_pair = [conn, address, buf, flag, proxy_mode]
+			sock_pair = [conn, address, buf, flag]
 			queue.put(sock_pair)
 
 	except socket.error as msg:
@@ -39,12 +36,9 @@ def tcp_connector(server_config):
 		sys.exit()
 
 
-def udp_connector(server_config):
+def udp_connector(host, port):
 
 	try:
-		host = server_config.get('host')
-		port = server_config.get('port')
-		proxy_mode = server_config.get('proxy')
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.bind((host, port))
@@ -53,7 +47,7 @@ def udp_connector(server_config):
 
 		while True:
 			buf, address = sock.recvfrom(UDP_BUFFER)
-			sock_pair = [sock, address, buf, flag, proxy_mode]
+			sock_pair = [sock, address, buf, flag]
 			queue.put(sock_pair)
 
 	except socket.error as msg:
@@ -61,18 +55,25 @@ def udp_connector(server_config):
 		sys.exit()
 
 
-def handle_request(thread_id, q):
+def handle_request(thread_id, q, server_config):
 
 	while True:
 
 		sock_pair = q.get()
-		sock, address, buf, flag = sock_pair
+		sock, address, buf, flag, proxy_mode = sock_pair
+		proxy_mode = server_config.get('proxy')
 		query = DNSQuery(thread_id, buf)
 		try:
 			ans_records = dnsquery.get_records(query.domain, query.type)
 		except mysql.connector.Error as e:
 			logger.error(e)
 			query.rcode = DNSQuery.SERVER_FAILURE
+
+		if ans_records is None and proxy_mode == 'yes':
+			dns1 = server_config.get('dns1')
+			dns2 = server_config.get('dns2')
+			ans_records = external_query(query.domain, query.type, dns1, dns2)
+			# query external dns
 
 		ns_records = []
 		additional_records = []
@@ -433,9 +434,10 @@ def encode_record(byte_array, record, name):
 		byte_array.append(ttl >> 8 & 255)
 		byte_array.append(ttl & 255)
 
-
 	return byte_array
 
+def external_query(query_domain, query_type, dns1, dns2):
+	print()
 
 def main():
 
@@ -454,16 +456,22 @@ def main():
 					server_config['proxy'] = True
 				else:
 					server_config['proxy'] = False
+			if temp[0] == 'dns1':
+				server_config['dns1'] = temp[1].rstrip('\n')
+			if temp[0] == 'dns2':
+				server_config['dns2'] = temp[1].rstrip('\n')
 
 
 	for i in range(threads):
-		request_handler = Thread(target=handle_request, args=(i, queue))
+		request_handler = Thread(target=handle_request, args=(i, queue, server_config))
 		request_handler.setDaemon(True)
 		request_handler.start()
 
-	tcp_thread = Thread(target=tcp_connector, args=(server_config,))
+	host = server_config.get('host')
+	port = server_config.get('port')
+	tcp_thread = Thread(target=tcp_connector, args=(host, port))
 	tcp_thread.start()
-	udp_thread = Thread(target=udp_connector, args=(server_config,))
+	udp_thread = Thread(target=udp_connector, args=(host, port))
 	udp_thread.start()
 	queue.join()
 
