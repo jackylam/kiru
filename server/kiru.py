@@ -72,7 +72,7 @@ def handle_request(thread_id, q, server_config):
 		if ans_records is None and proxy_mode == 'yes':
 			dns1 = server_config.get('dns1')
 			dns2 = server_config.get('dns2')
-			ans_records = external_query(query.domain, query.type, dns1, dns2)
+			ans_records = external_query(query.domain, query.qtype, dns1, dns2)
 			# query external dns
 
 		ns_records = []
@@ -436,8 +436,8 @@ def encode_record(byte_array, record, name):
 
 	return byte_array
 
-def external_query(query_domain, query_type, dns1, dns2):
-	print()
+def external_query(domain, qtype, dns1, dns2):
+	print("qtype is " + qtype)
 
 def main():
 
