@@ -168,7 +168,7 @@ def get_records(domain, type):
 
 	if logger.level == logging.INFO:
 		output = "\nQuery Name: " + domain + " Type: " + type
-	logger.info(output)
+		logger.info(output)
 	cursor = None
 	conn = None
 	records = []
