@@ -60,7 +60,7 @@ def handle_request(thread_id, q, server_config):
 	while True:
 
 		sock_pair = q.get()
-		sock, address, buf, flag, proxy_mode = sock_pair
+		sock, address, buf, flag = sock_pair
 		proxy_mode = server_config.get('proxy')
 		query = DNSQuery(thread_id, buf)
 		try:
@@ -69,11 +69,15 @@ def handle_request(thread_id, q, server_config):
 			logger.error(e)
 			query.rcode = DNSQuery.SERVER_FAILURE
 
-		if ans_records is None and proxy_mode == 'yes':
+		# query external dns if record not in db and proxy mode is True and A lookup
+		if not ans_records and proxy_mode and query.qtype == 1:
+
 			dns1 = server_config.get('dns1')
 			dns2 = server_config.get('dns2')
-			ans_records = external_query(query.domain, query.qtype, dns1, dns2)
-			# query external dns
+			if logger.level == logging.DEBUG:
+				logger.debug("kiru.py: dnsquery.do_external_query")
+			ans_records = dnsquery.do_external_query(query.domain, query.qtype, dns1, dns2)
+
 
 		ns_records = []
 		additional_records = []
@@ -436,8 +440,7 @@ def encode_record(byte_array, record, name):
 
 	return byte_array
 
-def external_query(domain, qtype, dns1, dns2):
-	print("qtype is " + qtype)
+
 
 def main():
 

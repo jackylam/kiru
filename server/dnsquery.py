@@ -2,8 +2,8 @@ from __future__ import print_function
 
 import logging
 import logging.config
-
 import dbpool
+import dns.resolver
 
 logging.config.fileConfig('logging.config')
 logger = logging.getLogger('dnsquery')
@@ -35,7 +35,7 @@ class DNSQuery:
 
 	# DNS Record Types
 
-	Q_TYPES = {1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 28: 'AAAA', 33: 'SRV', 35: 'NAPTR'}
+	Q_TYPES = {1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 16: 'TXT', 28: 'AAAA', 33: 'SRV', 35: 'NAPTR'}
 
 	# Response code
 
@@ -169,6 +169,8 @@ def get_records(domain, type):
 		cursor = None
 		conn = None
 		records = []
+		print(domain)
+		print(type)
 		try:
 			db = dbpool.get_database()
 			conn = db.get_connection()
@@ -249,6 +251,12 @@ def get_records_by_domain_id(domain_id, type):
 				conn.close()
 			return records
 
-
+def do_external_query(domain, qtype, dns1, dns2):
+	answers = dns.resolver.query(domain, 'A')
+	records = []
+	for rdata in answers:
+		record = Record(None, None, domain, 'A', rdata.to_text(), 69, None, None, None, None, None)
+		records.append(record)
+	return records
 
 
