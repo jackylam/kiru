@@ -166,48 +166,49 @@ def label_to_domain(labels):
 
 def get_records(domain, type):
 
-		cursor = None
-		conn = None
-		records = []
-		print(domain)
-		print(type)
-		try:
-			db = dbpool.get_database()
-			conn = db.get_connection()
-			cursor = conn.cursor()
-			query = 'SELECT id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name, auth' \
+	if logger.level == logging.INFO:
+		output = "\nQuery Name: " + domain + " Type: " + type
+	logger.info(output)
+	cursor = None
+	conn = None
+	records = []
+	try:
+		db = dbpool.get_database()
+		conn = db.get_connection()
+		cursor = conn.cursor()
+		query = 'SELECT id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name, auth' \
 					' FROM records WHERE name = %s and type = %s'
-			cursor.execute(query, (domain, type))
-			rs = cursor.fetchall()
+		cursor.execute(query, (domain, type))
+		rs = cursor.fetchall()
 
-			for row in rs:
-				if row[8] == 1:
-					continue
-				id = row[0]
-				domain_id = row[1]
-				name = row[2]
-				type = row[3]
-				content = row[4]
-				ttl = row[5]
-				priority = row[6]
-				change_date = row[7]
-				disabled = row[8]
-				order_name = row[9]
-				auth = row[10]
+		for row in rs:
+			if row[8] == 1:
+				continue
+			id = row[0]
+			domain_id = row[1]
+			name = row[2]
+			type = row[3]
+			content = row[4]
+			ttl = row[5]
+			priority = row[6]
+			change_date = row[7]
+			disabled = row[8]
+			order_name = row[9]
+			auth = row[10]
 
-				record = Record(id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name,
+			record = Record(id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name,
 								auth)
-				records.append(record)
+			records.append(record)
 
 			if logger.level == logging.DEBUG:
 				for record in records:
 					logger.debug(record.serialize())
-		finally:
-			if cursor is not None:
-				cursor.close()
-			if conn is not None:
-				conn.close()
-			return records
+	finally:
+		if cursor is not None:
+			cursor.close()
+		if conn is not None:
+			conn.close()
+		return records
 
 
 def get_records_by_domain_id(domain_id, type):
