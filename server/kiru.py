@@ -98,6 +98,9 @@ def handle_request(thread_id, q, server_config):
 				additional_records.extend(aaaa_records)
 
 		if logger.level == logging.INFO:
+			output = "\nQuery name: " + record.name + " Response: " + record.content
+			logger.info(output)
+		if logger.level == logging.DEBUG:
 			output = "\nans_records\n"
 			for record in ans_records:
 				output += record.name + " " + record.content + "\n"
@@ -107,7 +110,7 @@ def handle_request(thread_id, q, server_config):
 			output += "\nadditional_records\n"
 			for record in additional_records:
 				output += record.name + " " + record.content + "\n"
-			logger.info(output)
+			logger.debug(output)
 
 		answers = bytearray()
 
