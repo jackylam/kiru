@@ -254,11 +254,14 @@ def get_records_by_domain_id(domain_id, type):
 
 def do_external_query(domain, qtype, dns1, dns2):
 
-	answers = dns.resolver.query(domain, 'A')
-	records = []
-	for rdata in answers:
-		record = Record(None, None, domain, 'A', rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
-		records.append(record)
+	try:
+		records = []
+		answers = dns.resolver.query(domain, 'A')
+		for rdata in answers:
+			record = Record(None, None, domain, 'A', rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
+			records.append(record)
+	except(dns.resolver.NXDOMAIN):
+		logger.info("No answer for " + domain)
 	return records
 
 
