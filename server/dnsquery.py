@@ -260,7 +260,9 @@ def do_external_query(domain, qtype, dns1, dns2):
 		for rdata in answers:
 			record = Record(None, None, domain, 'A', rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
 			records.append(record)
-	except(dns.resolver.NXDOMAIN):
+	except dns.resolver.NXDOMAIN:
+		logger.info("NXDOMAIN for " + domain)
+	except dns.resolver.NoAnswer:
 		logger.info("No answer for " + domain)
 	return records
 
