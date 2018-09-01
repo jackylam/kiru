@@ -99,7 +99,7 @@ def handle_request(thread_id, q, server_config):
 
 		if logger.level == logging.INFO:
 			for record in ans_records:
-				output = "\nQuery name: " + record.name + " Response: " + record.content
+				output = "\nEndpoint: " + address + " Query name: " + record.name + " Response: " + record.content
 				logger.info(output)
 		if logger.level == logging.DEBUG:
 			output = "\nans_records\n"
