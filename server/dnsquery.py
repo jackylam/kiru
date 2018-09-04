@@ -113,7 +113,7 @@ class DNSQuery:
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
 		self.qtype = first_byte << 8 | second_byte
-		self.type = DNSQuery.Q_TYPES[self.qtype]
+		self.type = DNSQuery.Q_TYPES.get(self.qtype, 'NO_SUPPORT')
 
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
@@ -252,18 +252,40 @@ def get_records_by_domain_id(domain_id, type):
 				conn.close()
 			return records
 
-def do_external_query(domain, qtype, dns1, dns2):
+
+def do_external_query(domain, type, dns1, dns2):
 
 	try:
 		records = []
-		answers = dns.resolver.query(domain, 'A')
+		answers = dns.resolver.query(domain, type)
 		for rdata in answers:
-			record = Record(None, None, domain, 'A', rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
-			records.append(record)
+			if type == 'A':
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
+				records.append(record)
+			elif type == 'NS':
+				logger.info("NS query")
+			elif type == 'CNAME':
+				logger.info("CNAME query")
+			elif type == 'SOA':
+				logger.info("SOA query")
+			elif type == 'PTR':
+				logger.info("PTR query")
+			elif type == 'MX':
+				logger.info("MX query")
+				record = Record(None, None, domain, type, rdata.exchange, answers.rrset.ttl, rdata.preference, None, None, None, None)
+				records.append(record)
+			elif type == 'TXT':
+				logger.info("TXT query")
+			elif type == 'AAAA':
+				logger.info("AAAA query")
+			elif type == 'SRV':
+				logger.info("SRV query")
+			elif type == 'NAPTR':
+				logger.info("NAPTR query")
+			else:
+				records = []
 	except dns.resolver.NXDOMAIN:
 		logger.info("NXDOMAIN for " + domain)
 	except dns.resolver.NoAnswer:
 		logger.info("No answer for " + domain)
 	return records
-
-

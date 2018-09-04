@@ -70,13 +70,12 @@ def handle_request(thread_id, q, server_config):
 			query.rcode = DNSQuery.SERVER_FAILURE
 
 		# query external dns if record not in db and proxy mode is True and A lookup
-		if not ans_records and proxy_mode and query.qtype == 1:
-
+		if not ans_records and proxy_mode:
 			dns1 = server_config.get('dns1')
 			dns2 = server_config.get('dns2')
 			if logger.level == logging.DEBUG:
 				logger.debug("kiru.py: dnsquery.do_external_query")
-			ans_records = dnsquery.do_external_query(query.domain, query.qtype, dns1, dns2)
+			ans_records = dnsquery.do_external_query(query.domain, query.type, dns1, dns2)
 
 
 		ns_records = []
