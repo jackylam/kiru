@@ -271,9 +271,6 @@ def do_external_query(domain, type, dns1, dns2):
 			elif type == 'PTR':
 				logger.info("PTR query")
 			elif type == 'MX':
-				logger.info("MX query")
-				print(rdata.exchange)
-				print(rdata.preference)
 				record = Record(None, None, domain, type, rdata.exchange.to_text(), answers.rrset.ttl, rdata.preference, None, None, None, None)
 				records.append(record)
 			elif type == 'TXT':
