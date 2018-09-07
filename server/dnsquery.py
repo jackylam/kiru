@@ -166,7 +166,7 @@ def label_to_domain(labels):
 
 def get_records(domain, type):
 
-	if logger.level == logging.INFO:
+	if logger.level == logging.DEBUG:
 		output = "\nQuery Name: " + domain + " Type: " + type
 		logger.info(output)
 	cursor = None
@@ -265,7 +265,8 @@ def do_external_query(domain, type, dns1, dns2):
 			elif type == 'NS':
 				logger.info("NS query")
 			elif type == 'CNAME':
-				logger.info("CNAME query")
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None,None)
+				records.append(record)
 			elif type == 'SOA':
 				logger.info("SOA query")
 			elif type == 'PTR':
@@ -274,9 +275,11 @@ def do_external_query(domain, type, dns1, dns2):
 				record = Record(None, None, domain, type, rdata.exchange.to_text(), answers.rrset.ttl, rdata.preference, None, None, None, None)
 				records.append(record)
 			elif type == 'TXT':
-				logger.info("TXT query")
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
+				records.append(record)
 			elif type == 'AAAA':
-				logger.info("AAAA query")
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None,None)
+				records.append(record)
 			elif type == 'SRV':
 				logger.info("SRV query")
 			elif type == 'NAPTR':
