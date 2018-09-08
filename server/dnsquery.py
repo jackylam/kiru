@@ -287,7 +287,9 @@ def do_external_query(domain, type, dns1, dns2):
 			else:
 				records = []
 	except dns.resolver.NXDOMAIN:
-		logger.info("NXDOMAIN for " + domain)
+		logger.info("NXDOMAIN for " + domain + " type: " + type)
 	except dns.resolver.NoAnswer:
-		logger.info("No answer for " + domain)
+		logger.info("No answer for " + domain + "type: " + type)
+	except dns.rdatatype.UnknownRdatatype:
+		logger.info("UnknownRdatatype for " + domain + " type: " + type)
 	return records
