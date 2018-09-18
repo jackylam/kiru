@@ -89,7 +89,7 @@ def handle_request(thread_id, q, server_config):
 				domain_id = record.domain_id
 
 		if query.aa == 1 and query.type != 'SOA':
-			ns_records = dnsquery.get_records_by_domain_id(domain_id, 'NS')
+			ns_records = dnsquery.get_records(record.content, 'NS')
 			for record in ns_records:
 				a_records = dnsquery.get_records(record.content, 'A')
 				aaaa_records = dnsquery.get_records(record.content, 'AAAA')
@@ -98,7 +98,7 @@ def handle_request(thread_id, q, server_config):
 
 		if logger.level == logging.INFO:
 			for record in ans_records:
-				output = "\nEndpoint: " + address[0] + " Query name: " + record.name + " Type: " + record.type + " Response: " + record.content
+				output = "\nEndpoint: " + address[0] + " Domain: " + record.name + " Type: " + record.type + " Response: " + record.content
 				logger.info(output)
 		if logger.level == logging.DEBUG:
 			output = "\nans_records\n"
