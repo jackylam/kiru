@@ -1,6 +1,5 @@
 import sys, os, logging, logging.config
-import mysql.connector
-from mysql.connector import pooling
+import mariadb
 
 logging.config.fileConfig('logging.config')
 logger = logging.getLogger('dbpool')
@@ -21,8 +20,8 @@ def create_pool():
             if temp[0] == 'db_size':
                 db_size = int(temp[1].rstrip('\n'))
 
-    db = mysql.connector.pooling.MySQLConnectionPool(pool_name="pool", pool_size=db_size, autocommit=False, user=db_user,
-                                                         password=db_pass, host=db_url, database=db_name)
+    db = mariadb.ConnectionPool(user=db_user, password=db_pass, host=db_url, port=3306, pool_name=db_name,
+								pool_size=db_size, database=db_name)
     logger.info("\ninitialize db connection pool...")
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -37,12 +36,11 @@ def create_pool():
 
 
 def get_database():
-
     global db
-    if not isinstance(db, mysql.connector.pooling.MySQLConnectionPool):
+    if not isinstance(db, mariadb.ConnectionPool):
         db = create_pool()
         return db
     else:
         return db
-
+# Initialize database pool on import
 db = create_pool()

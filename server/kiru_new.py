@@ -15,6 +15,7 @@ def tcp_connector(host, port):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.bind((host, port))
+
 		sock.listen(5)
 		flag = TCP_FLAG
 
@@ -50,28 +51,18 @@ def udp_connector(host, port):
 		sys.exit()
 
 
-def handle_request(thread_id, q, server_config):
+def handle_request(thread_id, q):
 
 	while True:
 
 		sock_pair = q.get()
 		sock, address, buf, flag = sock_pair
-		proxy_mode = server_config.get('proxy')
 		query = dnsquery.DNSQuery(thread_id, buf)
 		try:
 			ans_records = dnsquery.get_records(query.domain, query.type)
 		except mariadb.DatabaseError as e:
 			logger.error(e)
-			query.rcode = DNSQuery.SERVER_FAILURE
-
-		# query external dns if record not in db and proxy mode is True and A lookup
-		if not ans_records and proxy_mode:
-			dns1 = server_config.get('dns1')
-			dns2 = server_config.get('dns2')
-			if logger.level == logging.DEBUG:
-				logger.debug("kiru.py: dnsquery.do_external_query")
-			ans_records = dnsquery.do_external_query(query.domain, query.type, dns1, dns2)
-
+			query.rcode = dnsquery.SERVER_FAILURE
 
 		ns_records = []
 		additional_records = []
@@ -84,27 +75,23 @@ def handle_request(thread_id, q, server_config):
 				domain_id = record.domain_id
 
 		if query.aa == 1 and query.type != 'SOA':
-			ns_records = dnsquery.get_records(record.content, 'NS')
+			ns_records = dnsquery.get_records_by_domain_id(domain_id, 'NS')
 			for record in ns_records:
 				a_records = dnsquery.get_records(record.content, 'A')
 				aaaa_records = dnsquery.get_records(record.content, 'AAAA')
 				additional_records.extend(a_records)
 				additional_records.extend(aaaa_records)
 
-		if logger.level == logging.INFO:
-			for record in ans_records:
-				output = "\nEndpoint: " + address[0] + " Domain: " + record.name + " Type: " + record.type + " Response: " + record.content
-				logger.info(output)
 		if logger.level == logging.DEBUG:
 			output = "\nans_records\n"
 			for record in ans_records:
-				output += record.name + " " + record.content + "\n"
+				output += record.name + " " + record.content
 			output += "\nns_records\n"
 			for record in ns_records:
-				output += record.name + " " + record.content + "\n"
+				output += record.name + " " + record.content
 			output += "\nadditional_records\n"
 			for record in additional_records:
-				output += record.name + " " + record.content + "\n"
+				output += record.name + " " + record.content
 			logger.debug(output)
 
 		answers = bytearray()
@@ -231,16 +218,6 @@ def encode_record(byte_array, record, name):
 		for number in ip_list:
 			byte_array.append(int(number))
 
-	# Encoding for TXT record
-
-	if str(record.type).upper() == 'TXT':
-		length = len(record.content)
-		data_length = length + 1
-		byte_array.append(data_length >> 8)
-		byte_array.append(data_length & 255)
-		byte_array.append(length & 255)
-		byte_array.extend(record.content.encode('ascii'))
-
 	# Encoding for CNAME, NS and PTR records
 
 	if str(record.type).upper() == 'CNAME' or str(record.type).upper() == 'NS' or str(record.type).upper() == 'PTR':
@@ -257,8 +234,6 @@ def encode_record(byte_array, record, name):
 		for label in label_list:
 			byte_array.append(len(label))
 			byte_array.extend(label.encode('ascii'))
-
-
 		byte_array.append(0)
 
 	# Encoding for MX record
@@ -279,8 +254,16 @@ def encode_record(byte_array, record, name):
 		for label in label_list:
 			byte_array.append(len(label))
 			byte_array.extend(label.encode('ascii'))
-
 		byte_array.append(0)
+
+	# Encoding for TXT record
+	if str(record.type).upper() == 'TXT':
+		txt_length = len(record.content)
+		data_length = txt_length + 1
+		byte_array.append(data_length >> 8)
+		byte_array.append(data_length & 255)
+		byte_array.append(txt_length & 255)
+		byte_array.extend(record.content.encode('ascii'))
 
 	# Encoding for AAAA record
 
@@ -403,13 +386,11 @@ def encode_record(byte_array, record, name):
 		for label in label_list:
 			byte_array.append(len(label))
 			byte_array.extend(label.encode('ascii'))
-		#byte_array.append(0)
 
 		label_list = r_name.split('.')
 		for label in label_list:
 			byte_array.append(len(label))
 			byte_array.extend(label.encode('ascii'))
-		#byte_array.append(0)
 
 		byte_array.append(serial >> 24)
 		byte_array.append(serial >> 16 & 255)
@@ -439,37 +420,23 @@ def encode_record(byte_array, record, name):
 	return byte_array
 
 
-
 def main():
 
 	with open(os.path.join(os.path.dirname(__file__), "config.properties"), 'r') as config:
-		server_config = {}
 		for line in config:
 			temp = line.split('=')
 			if temp[0] == 'threads':
 				threads = int(temp[1])
 			if temp[0] == 'host':
-				server_config['host'] = temp[1].rstrip('\n')
+				host = temp[1].rstrip('\n')
 			if temp[0] == 'port':
-				server_config['port'] = int(temp[1].rstrip('\n'))
-			if temp[0] == 'proxy':
-				if temp[1].rstrip('\n') == 'yes':
-					server_config['proxy'] = True
-				else:
-					server_config['proxy'] = False
-			if temp[0] == 'dns1':
-				server_config['dns1'] = temp[1].rstrip('\n')
-			if temp[0] == 'dns2':
-				server_config['dns2'] = temp[1].rstrip('\n')
-
+				port = int(temp[1].rstrip('\n'))
 
 	for i in range(threads):
-		request_handler = Thread(target=handle_request, args=(i, queue, server_config))
+		request_handler = Thread(target=handle_request, args=(i, queue))
 		request_handler.setDaemon(True)
 		request_handler.start()
 
-	host = server_config.get('host')
-	port = server_config.get('port')
 	tcp_thread = Thread(target=tcp_connector, args=(host, port))
 	tcp_thread.start()
 	udp_thread = Thread(target=udp_connector, args=(host, port))

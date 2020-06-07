@@ -1,0 +1,44 @@
+2020-06-07 02:09:02,903 - dbpool - INFO - 
+initialize db connection pool...
+2020-06-07 02:09:02,916 - dbpool - INFO - 
+db connection pool initialized
+db version = 10.3.22-MariaDB-1
+pool size = 10
+2020-06-07 02:09:02,924 - kiru - INFO - Starting TCP connector on port 5354...
+2020-06-07 02:09:02,924 - kiru - INFO - Starting UDP connector on port 5354...
+2020-06-07 02:18:57,566 - dbpool - INFO - 
+initialize db connection pool...
+2020-06-07 02:18:57,570 - dbpool - INFO - 
+db connection pool initialized
+db version = 10.3.22-MariaDB-1
+pool size = 10
+2020-06-07 02:18:57,582 - kiru - INFO - Starting UDP connector on port 5354...
+2020-06-07 02:18:57,582 - kiru - INFO - Starting TCP connector on port 5354...
+2020-06-07 02:20:01,429 - dbpool - INFO - 
+initialize db connection pool...
+2020-06-07 02:20:01,433 - dbpool - INFO - 
+db connection pool initialized
+db version = 10.3.22-MariaDB-1
+pool size = 10
+2020-06-07 02:20:01,439 - kiru - INFO - Starting TCP connector on port 5354...
+2020-06-07 02:20:01,440 - kiru - INFO - Starting UDP connector on port 5354...
+2020-06-07 02:20:04,364 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: primary.jaks.me. Type: a Response: 192.168.10.1
+2020-06-07 02:20:04,364 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: primary.jaks.me. Type: a Response: 10.0.0.1
+2020-06-07 02:20:10,523 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: primary.jaks.me. Type: txt Response: globalsign-smime-dv=CDYX+XFHUw2wml6/Gb8+59BsH31KzUr6c1l2BPvqKX8=
+2020-06-07 02:21:43,499 - dbpool - INFO - 
+initialize db connection pool...
+2020-06-07 02:21:43,502 - dbpool - INFO - 
+db connection pool initialized
+db version = 10.3.22-MariaDB-1
+pool size = 10
+2020-06-07 02:21:43,558 - kiru - INFO - Starting UDP connector on port 5354...
+2020-06-07 02:21:43,558 - kiru - INFO - Starting TCP connector on port 5354...
+2020-06-07 02:21:48,223 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: primary.jaks.me. Type: txt Response: globalsign-smime-dv=CDYX+XFHUw2wml6/Gb8+59BsH31KzUr6c1l2BPvqKX8=
+2020-06-07 02:21:50,807 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: www.google.ca. Type: A Response: 172.217.14.195
+2020-06-07 02:22:15,906 - kiru - INFO - 
+Endpoint: 127.0.0.1 Domain: www.google.ca. Type: A Response: 172.217.14.195

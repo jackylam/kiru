@@ -1,7 +1,5 @@
-from __future__ import print_function
-
 import logging
-import logging.config
+import mariadb
 import dbpool
 import dns.resolver
 
@@ -113,7 +111,7 @@ class DNSQuery:
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
 		self.qtype = first_byte << 8 | second_byte
-		self.type = DNSQuery.Q_TYPES.get(self.qtype, 'NO_SUPPORT')
+		self.type = self.Q_TYPES[self.qtype]
 
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
@@ -203,6 +201,8 @@ def get_records(domain, type):
 			if logger.level == logging.DEBUG:
 				for record in records:
 					logger.debug(record.serialize())
+	except mariadb.Error as err:
+		logger.error(err)
 	finally:
 		if cursor is not None:
 			cursor.close()
