@@ -1,9 +1,7 @@
-from __future__ import print_function
-
 import logging
-import logging.config
-
+import mariadb
 import dbpool
+import dns.resolver
 
 logging.config.fileConfig('logging.config')
 logger = logging.getLogger('dnsquery')
@@ -35,7 +33,7 @@ class DNSQuery:
 
 	# DNS Record Types
 
-	Q_TYPES = {1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 28: 'AAAA', 33: 'SRV', 35: 'NAPTR'}
+	Q_TYPES = {1: 'A', 2: 'NS', 5: 'CNAME', 6: 'SOA', 12: 'PTR', 15: 'MX', 16: 'TXT', 28: 'AAAA', 33: 'SRV', 35: 'NAPTR'}
 
 	# Response code
 
@@ -113,7 +111,7 @@ class DNSQuery:
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
 		self.qtype = first_byte << 8 | second_byte
-		self.type = DNSQuery.Q_TYPES[self.qtype]
+		self.type = self.Q_TYPES[self.qtype]
 
 		first_byte = data.pop(0)
 		second_byte = data.pop(0)
@@ -166,46 +164,51 @@ def label_to_domain(labels):
 
 def get_records(domain, type):
 
-		cursor = None
-		conn = None
-		records = []
-		try:
-			db = dbpool.get_database()
-			conn = db.get_connection()
-			cursor = conn.cursor()
-			query = 'SELECT id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name, auth' \
+	if logger.level == logging.DEBUG:
+		output = "\nQuery Name: " + domain + " Type: " + type
+		logger.info(output)
+	cursor = None
+	conn = None
+	records = []
+	try:
+		db = dbpool.get_database()
+		conn = db.get_connection()
+		cursor = conn.cursor()
+		query = 'SELECT id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name, auth' \
 					' FROM records WHERE name = %s and type = %s'
-			cursor.execute(query, (domain, type))
-			rs = cursor.fetchall()
+		cursor.execute(query, (domain, type))
+		rs = cursor.fetchall()
 
-			for row in rs:
-				if row[8] == 1:
-					continue
-				id = row[0]
-				domain_id = row[1]
-				name = row[2]
-				type = row[3]
-				content = row[4]
-				ttl = row[5]
-				priority = row[6]
-				change_date = row[7]
-				disabled = row[8]
-				order_name = row[9]
-				auth = row[10]
+		for row in rs:
+			if row[8] == 1:
+				continue
+			id = row[0]
+			domain_id = row[1]
+			name = row[2]
+			type = row[3]
+			content = row[4]
+			ttl = row[5]
+			priority = row[6]
+			change_date = row[7]
+			disabled = row[8]
+			order_name = row[9]
+			auth = row[10]
 
-				record = Record(id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name,
+			record = Record(id, domain_id, name, type, content, ttl, priority, change_date, disabled, order_name,
 								auth)
-				records.append(record)
+			records.append(record)
 
 			if logger.level == logging.DEBUG:
 				for record in records:
 					logger.debug(record.serialize())
-		finally:
-			if cursor is not None:
-				cursor.close()
-			if conn is not None:
-				conn.close()
-			return records
+	except mariadb.Error as err:
+		logger.error(err)
+	finally:
+		if cursor is not None:
+			cursor.close()
+		if conn is not None:
+			conn.close()
+		return records
 
 
 def get_records_by_domain_id(domain_id, type):
@@ -250,5 +253,43 @@ def get_records_by_domain_id(domain_id, type):
 			return records
 
 
+def do_external_query(domain, type, dns1, dns2):
 
-
+	try:
+		records = []
+		answers = dns.resolver.query(domain, type)
+		for rdata in answers:
+			if type == 'A':
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
+				records.append(record)
+			elif type == 'NS':
+				logger.info("NS query")
+			elif type == 'CNAME':
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None,None)
+				records.append(record)
+			elif type == 'SOA':
+				logger.info("SOA query")
+			elif type == 'PTR':
+				logger.info("PTR query")
+			elif type == 'MX':
+				record = Record(None, None, domain, type, rdata.exchange.to_text(), answers.rrset.ttl, rdata.preference, None, None, None, None)
+				records.append(record)
+			elif type == 'TXT':
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None, None)
+				records.append(record)
+			elif type == 'AAAA':
+				record = Record(None, None, domain, type, rdata.to_text(), answers.rrset.ttl, None, None, None, None,None)
+				records.append(record)
+			elif type == 'SRV':
+				logger.info("SRV query")
+			elif type == 'NAPTR':
+				logger.info("NAPTR query")
+			else:
+				records = []
+	except dns.resolver.NXDOMAIN:
+		logger.info("NXDOMAIN for " + domain + " type: " + type)
+	except dns.resolver.NoAnswer:
+		logger.info("No answer for " + domain + "type: " + type)
+	except dns.rdatatype.UnknownRdatatype:
+		logger.info("UnknownRdatatype for " + domain + " type: " + type)
+	return records

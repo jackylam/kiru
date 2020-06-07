@@ -1,0 +1,11 @@
+threads=5
+host=localhost
+port=53
+db_user=db_username
+db_pass=db_password
+db_url=127.0.0.1
+db_name=kiru
+db_size=10
+proxy=yes
+dns1=1.1.1.1
+dns2=1.0.0.1
